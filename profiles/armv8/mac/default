@@ -4,8 +4,8 @@ build_type=Release
 compiler=clang
 compiler.cppstd=23
 compiler.libcxx=libc++
-compiler.version=17
+compiler.version=20
 os=Macos
 
-[conf]
-tools.build:compiler_executables={ 'c': '/opt/homebrew/opt/llvm@17/bin/clang', 'cpp': '/opt/homebrew/opt/llvm@17/bin/clang++' }
+[tool_requires]
+llvm-toolchain/20
