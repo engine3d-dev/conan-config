@@ -90,18 +90,31 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
 
     # For an example commands such as `conan atlas build .`
     # *args contain the following content (['build', '.'],)
-    parsed_args, conanfile_dir = subparser.parse_known_args(*args)
+    parsed_args, conanfile_args = subparser.parse_known_args(*args)
 
     # We splice to extend the following commands to automatically directly be extended from the main commands call
     # Meaning if we have something like: `conan atlas build . -s build_type=Debug -o enable_tests_only=True`
     # We would parse pass `-s` and slice those following arguments directly with the commands to be executed as optional arguments specified.
-    forward_args = conanfile_dir[1:]
-    logger.info(f"UNKNOWN ARGS = {forward_args}")
-    build_type = "Release" if parsed_args.release else "Debug"
+    forward_args = conanfile_args[1:]
+
+    # 2. Parse arguments
+    # parsed_args handles your --release flag
+    # conanfile_args[1:] captures everything like ['-s', 'build_type=RelWithDebInfo', '-o', ...]
+    # parsed_args2, conanfile_args = subparser.parse_known_args(*args)
+    forward_args2 = conanfile_args[1:] if len(conanfile_args) > 1 else []
+
+    # 3. EXTRACT BUILD TYPE (No loop, handles ALL Conan types)
+    # We look for 'build_type=' in forward_args. If found, we take that value.
+    # If NOT found, we check the --release flag.
+    # If neither exists, we default to "Debug".
+    extracted_build_type = next(
+        (arg.split('=')[-1] for arg in forward_args2 if "build_type=" in arg),
+        "Release" if parsed_args.release else "Debug"
+    )
 
     build_path = Path(parsed_args.path).resolve()
     
-    # Platform detection logic
+    # Detecting host platform
     system = platform.system().lower()
     machine = platform.machine().lower()
     
@@ -118,17 +131,17 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
         confs["tools.system.package_manager:mode"] = "install"
 
     # Building thje accumulative commands to the final command output to execute.
-    logger.info(f"Current PATH = {conanfile_dir[0]}")
+    logger.info(f"Current PATH = {conanfile_args[0]}")
     cmd = [
-        "conan", "build", str(conanfile_dir[0]),
+        "conan", "build", str(conanfile_args[0]),
         "-b", "missing",
-        "-s", f"build_type={build_type}",
+        "-s", f"build_type={extracted_build_type}",
         "-pr", profile
     ]
     cmd.extend(confs)
     cmd.extend(forward_args)
 
-    logger.info(f"🛠️ Building: {build_path} | Profile: {profile} | Mode: {build_type}")
+    logger.info(f"🛠️ Building: {build_path} | Profile: {profile} | Build Type: {extracted_build_type}")
 
     try:
         subprocess.run(cmd, check=True)
