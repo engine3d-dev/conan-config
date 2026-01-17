@@ -3,16 +3,12 @@ import subprocess
 import platform
 
 from pathlib import Path
-from conan import ConanFile
-from conan.api.conan_api import ConanAPI, ProfilesAPI, ConfigAPI
-from conan.cli.cli import Cli
-from conan.internal.conan_app import ConanApp
+from conan.api.conan_api import ConanAPI
 from conan.api.model import Remote
 from conan.errors import ConanException
 from conan.cli.command import conan_command, conan_subcommand
 from conan.api.conan_api import ConanAPI
 from conan.cli.command import conan_command
-import os
 
 logger = logging.getLogger(__name__)
 
@@ -47,14 +43,13 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
             else:
                 logger.info(f"'{name}' does not exist, adding...")
                 conan_api.remotes.add(Remote(name, url))
-                logger.info(f"✅ Remote '{name}' was added successfully")
         except Exception as e:
             logger.error(f"❌ Failed to configure with remote {e}")
             return
-        
+    
+    logger.info(f"✅ Conan Remotes have been added successfully")
 
     # Ensuring the conan host profiles are setup
-
     try:
         conan_api.profiles.get_default_host()
         logger.info("✅ System currently already have a default host profile, proceeding!")
@@ -66,9 +61,6 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
         home_path = Path(conan_api.home_folder)
         default_profile_path = home_path / "profiles" / "default"
         detected_profile_info = conan_api.profiles.detect()
-        # logger.info(f"Home Path: {home_path}")
-        # logger.info(f"Default Profile Path {default_profile_path}")
-        # logger.info(f"Defalt Detected Profile: {detected_profile_info}")
         default_profile_path.write_text(str(detected_profile_info))
         logger.info("✅ Default profile generated!")
         logger.info(f"🔍 Profile Contents:\n{detected_profile_info}")
@@ -219,13 +211,11 @@ def atlas_create(conan_api: ConanAPI, parser, subparser, *args):
     cmd.extend(confs)
     cmd.extend(forward_args)
 
-    logger.info(f"🛠️ Building: {build_path} | Profile: {profile} | Build Type: {extracted_build_type}")
-
     try:
         subprocess.run(cmd, check=True)
-        logger.info("✅ Build completed successfully!")
+        logger.info("✅ Creating package completed successfully!")
     except subprocess.CalledProcessError as e:
-        logger.error(f"❌ Build failed with exit code {e.returncode}")
+        logger.error(f"❌ Creating package failed with exit code {e.returncode}")
 
 @conan_command(group="engine3d-dev")
 def atlas(conan_api, parser, *args):
