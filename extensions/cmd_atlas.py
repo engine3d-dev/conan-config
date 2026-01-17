@@ -97,13 +97,11 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
     # We would parse pass `-s` and slice those following arguments directly with the commands to be executed as optional arguments specified.
     forward_args = conanfile_args[1:]
 
-    # 2. Parse arguments
     # parsed_args handles your --release flag
     # conanfile_args[1:] captures everything like ['-s', 'build_type=RelWithDebInfo', '-o', ...]
     # parsed_args2, conanfile_args = subparser.parse_known_args(*args)
     forward_args2 = conanfile_args[1:] if len(conanfile_args) > 1 else []
 
-    # 3. EXTRACT BUILD TYPE (No loop, handles ALL Conan types)
     # We look for 'build_type=' in forward_args. If found, we take that value.
     # If NOT found, we check the --release flag.
     # If neither exists, we default to "Debug".
@@ -153,6 +151,84 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Build failed with exit code {e.returncode}")
 
+@conan_subcommand()
+def atlas_create(conan_api: ConanAPI, parser, subparser, *args):
+    """
+    Example Usage:
+    conan atlas create . -s build_type=Debug
+    """
+    subparser.add_argument("--release", action="store_true", help="Build in Release mode")
+    subparser.add_argument(
+        "path", 
+        nargs="?", 
+        default=".", 
+        help="Path to the recipe folder"
+    )
+
+    # For an example commands such as `conan atlas build .`
+    # *args contain the following content (['build', '.'],)
+    parsed_args, conanfile_args = subparser.parse_known_args(*args)
+
+    # We splice to extend the following commands to automatically directly be extended from the main commands call
+    # Meaning if we have something like: `conan atlas build . -s build_type=Debug -o enable_tests_only=True`
+    # We would parse pass `-s` and slice those following arguments directly with the commands to be executed as optional arguments specified.
+    forward_args = conanfile_args[1:]
+
+    # 2. Parse arguments
+    # parsed_args handles your --release flag
+    # conanfile_args[1:] captures everything like ['-s', 'build_type=RelWithDebInfo', '-o', ...]
+    # parsed_args2, conanfile_args = subparser.parse_known_args(*args)
+    forward_args2 = conanfile_args[1:] if len(conanfile_args) > 1 else []
+
+    # We look for 'build_type=' in forward_args. If found, we take that value.
+    extracted_build_type = next(
+        (arg.split('=')[-1] for arg in forward_args2 if "build_type=" in arg),
+        "Release" if parsed_args.release else "Debug"
+    )
+
+    build_path = Path(parsed_args.path).resolve()
+    
+    # Detecting host platform
+    system = platform.system().lower()
+    machine = platform.machine().lower()
+    
+    profile = ""
+    confs = []
+
+    if system == "windows":
+        profile = "windows_x86_64"
+    elif system == "darwin":
+        profile = "mac_armv8" if "arm" in machine else "mac_x86_64"
+    elif system == "linux":
+        profile = "linux_x86_64"
+        # confs["tools.system.package_manager:sudo"] = "True"
+        # confs["tools.system.package_manager:mode"] = "install"
+        confs.extend([
+            "-c", "tools.system.package_manager:sudo=True",
+            "-c", "tools.system.package_manager:mode=install"
+        ])
+
+    # Building thje accumulative commands to the final command output to execute.
+    logger.info(f"Current PATH = {conanfile_args[0]}")
+    cmd = [
+        "conan", "create", str(conanfile_args[0]),
+        "-b", "missing",
+        "-s", f"build_type={extracted_build_type}",
+        "-pr", profile
+    ]
+    cmd.extend(confs)
+    cmd.extend(forward_args)
+
+    logger.info(f"🛠️ Building: {build_path} | Profile: {profile} | Build Type: {extracted_build_type}")
+
+    try:
+        subprocess.run(cmd, check=True)
+        logger.info("✅ Build completed successfully!")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"❌ Build failed with exit code {e.returncode}")
+
+    pass
+
 @conan_command(group="engine3d-dev")
 def atlas(conan_api, parser, *args):
     """
@@ -174,6 +250,7 @@ def atlas(conan_api, parser, *args):
     Examples:
     conan atlas setup
     conan atlas build <path> <arguments>
+    conan atlas create <path> <arguments>
 
     Use "conan atlas --help" for more information on a specific command.
     """
