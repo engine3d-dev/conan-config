@@ -158,167 +158,6 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
 #     except Exception as e:
 #         logger.error(f"❌ Build failed: {e}")
 
-# @conan_subcommand()
-# def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
-#     """
-#     Build the project with platform-specific defaults.
-    
-#     Usage: conan atlas build [--release]
-#     """
-#     subparser.add_argument("--release", action="store_true", help="Build in Release mode")
-#     # subparser.add_argument("-path", default=".", help="Path to the recipe (default: .)")
-#     subparser.add_argument(
-#         "path", 
-#         nargs="?", 
-#         default=".", 
-#         help="Path to the recipe folder (default: current directory)"
-#     )
-    
-#     # Parse the sub-arguments
-#     # args, unknown_args = subparser.parse_known_args(*args)
-#     args, unknown_args = subparser.parse_known_args(*args)
-    
-#     build_type = "Release" if args.release else "Debug"
-#     system = platform.system().lower()
-#     machine = platform.machine().lower()
-#     # build_path = Path(args.path).resolve()
-#     # Parse args (args[0] contains the list of strings from the CLI)
-#     # parsed_args, unknown_args = subparser.parse_known_args(*args)
-#     # parsed_args, unknown_args = subparser.parse_known_args(*args)
-
-#     # # 2. Resolve the path dynamically
-#     # # This turns "." into a full absolute path like /home/user/project
-#     # # target_path = Path(parsed_args.path).resolve()
-#     # build_path = Path(parsed_args.path).resolve()
-#     # 2. Fix the parsing logic: 
-#     # Use 'args' directly. If 'args' is a tuple containing a list, 
-#     # we take the first element.
-#     parsed_args, unknown_args = subparser.parse_known_args(*args)
-
-#     # 3. Resolve the path
-#     # Since you want 'conan atlas build .', parsed_args.path will be '.'
-#     build_path = Path(parsed_args.path).resolve()
-
-#     if not (build_path / "conanfile.py").exists():
-#         logger.error(f"❌ No conanfile found at {build_path}")
-#         return
-    
-#     # 1. Map platform to your custom profiles
-#     profile = ""
-#     conf = []
-
-#     if system == "windows":
-#         profile = "windows_x86_64"
-#     elif system == "darwin": # Mac
-#         profile = "mac_armv8" if "arm" in machine else "mac_x86_64"
-#     elif system == "linux":
-#         profile = "linux_x86_64"
-#         # 2. Inject Linux-specific package manager settings
-#         conf.append("tools.system.package_manager:sudo=True")
-#         conf.append("tools.system.package_manager:mode=install")
-
-#     logger.info(f"🛠️  Building for {system} ({profile}) in {build_type} mode...")
-
-#     # 3. Construct the command
-#     # We use subprocess to call the main conan command to ensure 
-#     # all environment integrations work as expected
-#     # cmd = [
-#     #     "conan", "build", args.path,
-#     #     "-b", "missing",
-#     #     "-s", f"build_type={build_type}",
-#     #     "-pr", profile
-#     # ]
-#     logger.info(f"📂 Working Directory: {build_path}")
-
-#     # 3. Use the resolved path in your command
-#     cmd = [
-#         "conan", "build", str(build_path),
-#         "-b", "missing",
-#         # ... other arguments ...
-#     ]
-
-#     for c in conf:
-#         cmd.extend(["-c", c])
-
-#     # Pass through any unknown arguments (e.g., --build=your_pkg)
-#     cmd.extend(unknown_args)
-
-#     try:
-#         subprocess.run(cmd, check=True)
-#         logger.info("✅ Build completed successfully!")
-#     except subprocess.CalledProcessError as e:
-#         logger.error(f"❌ Build failed with exit code {e.returncode}")
-
-# @conan_subcommand()
-# def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
-#     """
-#     Build the project with platform-specific defaults.
-    
-#     Usage: conan atlas build [--release]
-#     """
-#     subparser.add_argument("--release", action="store_true", help="Build in Release mode")
-#     subparser.add_argument(
-#         "path", 
-#         nargs="?", 
-#         default=".", 
-#         help="Path to the recipe folder (default: current directory)"
-#     )
-    
-#     # args, unknown_args = subparser.parse_known_args(*args)
-#     parsed_args, unknown_args = subparser.parse_known_args(*args)
-    
-#     build_type = "Release" if args.release else "Debug"
-#     system = platform.system().lower()
-#     machine = platform.machine().lower()
-#     # Use 'args' directly. If 'args' is a tuple containing a list, 
-#     # we take the first element.
-#     parsed_args, unknown_args = subparser.parse_known_args(*args)
-
-#     # 3. Resolve the path
-#     # Since you want 'conan atlas build .', parsed_args.path will be '.'
-#     build_path = Path(parsed_args.path).resolve()
-
-#     if not (build_path / "conanfile.py").exists():
-#         logger.error(f"❌ No conanfile found at {build_path}")
-#         return
-    
-#     # 1. Map platform to your custom profiles
-#     profile = ""
-#     conf = []
-
-#     if system == "windows":
-#         profile = "windows_x86_64"
-#     elif system == "darwin": # Mac
-#         profile = "mac_armv8" if "arm" in machine else "mac_x86_64"
-#     elif system == "linux":
-#         profile = "linux_x86_64"
-#         # 2. Inject Linux-specific package manager settings
-#         conf.append("tools.system.package_manager:sudo=True")
-#         conf.append("tools.system.package_manager:mode=install")
-
-#     logger.info(f"🛠️  Building for {system} ({profile}) in {build_type} mode...")
-
-#     logger.info(f"📂 Working Directory: {build_path}")
-
-#     # 3. Use the resolved path in your command
-#     cmd = [
-#         "conan", "build", str(build_path),
-#         "-b", "missing",
-#         # ... other arguments ...
-#     ]
-
-#     for c in conf:
-#         cmd.extend(["-c", c])
-
-#     # Pass through any unknown arguments (e.g., --build=your_pkg)
-#     cmd.extend(unknown_args)
-
-#     try:
-#         subprocess.run(cmd, check=True)
-#         logger.info("✅ Build completed successfully!")
-#     except subprocess.CalledProcessError as e:
-#         logger.error(f"❌ Build failed with exit code {e.returncode}")
-
 @conan_subcommand()
 def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
     """
@@ -344,7 +183,7 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
     machine = platform.machine().lower()
     
     profile = ""
-    conf = []
+    confs = []
 
     if system == "windows":
         profile = "windows_x86_64"
@@ -352,8 +191,8 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
         profile = "mac_armv8" if "arm" in machine else "mac_x86_64"
     elif system == "linux":
         profile = "linux_x86_64"
-        conf.extend(["-c", "tools.system.package_manager:sudo=True", 
-                     "-c", "tools.system.package_manager:mode=install"])
+        confs["tools.system.package_manager:sudo"] = True
+        confs["tools.system.package_manager:mode"] = "install"
 
     # Build the command
     # logger.info(f"*args[0] = {args[0]}")
@@ -364,7 +203,7 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
         "-s", f"build_type={build_type}",
         "-pr", profile
     ]
-    cmd.extend(conf)
+    cmd.extend(confs)
 
     logger.info(f"🛠️ Building: {build_path} | Profile: {profile} | Mode: {build_type}")
 
