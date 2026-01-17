@@ -75,89 +75,6 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
 
     logger.info("✅ TheAtlasEngine development environment setup is COMPLETE! 🚀")
 
-# @conan_subcommand()
-# def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
-#     """
-#     Automating build for Windows, Linux, and Mac Armv8 Builds
-#     Usage: Conan atlas . build
-#     """
-#     subparser.add_argument(
-#         "path", 
-#         help="Path to the folder containing conanfile.py",
-#         default=".",
-#         nargs="?" # Makes the path optional, defaults to current directory
-#     )
-
-#     # Parse the arguments
-#     info, _ = parser.parse_known_args(*args)
-
-#     source_path = os.path.abspath(info.path)
-#     if not os.path.exists(os.path.join(source_path, "conanfile.py")):
-#         logger.error(f"❌ No conanfile found at: {source_path}")
-#         return
-
-#     # 3. Detect Platform-Specific Logic
-#     os_name = platform.system()
-#     arch = platform.machine().lower()
-    
-#     build_profile = "default"
-#     confs = {}
-
-#     os_name = platform.system()
-#     arch = platform.machine().lower()
-    
-#     build_profile = "default"
-#     confs = {}
-
-#     if os_name == "Windows":
-#         build_profile = "windows_x86_64"
-#     elif os_name == "Linux":
-#         build_profile = "linux_x86_64"
-#         confs["tools.system.package_manager:sudo"] = True
-#         confs["tools.system.package_manager:mode"] = "install"
-#     elif os_name == "Darwin": # Mac
-#         build_profile = "mac_armv8" if ("arm" in arch or "aarch64" in arch) else "mac_x86_64"
-
-#     logger.info(f"🚀 Building project at: {source_path}")
-#     logger.info(f"🛠️ Using profile: {build_profile}")
-
-#     try:
-#         # 4. Configure Profiles and Settings
-#         profile_host = conan_api.profiles.get_profile([build_profile])
-#         profile_build = conan_api.profiles.get_default_build()
-        
-#         # Set Debug mode
-#         profile_host.settings["build_type"] = "Debug"
-        
-#         # Apply configurations (especially for Linux sudo)
-#         for key, value in confs.items():
-#             profile_host.conf.update(key, value)
-
-#         # If we get an error to run
-#         # Essentially adding a -b missing to build if there is an error that occurs with building the project.
-#         # This resolves dependencies and generates build files
-#         # conan_api.install.common(
-#         #     path=source_path,
-#         #     profiles=[profile_host, profile_build],
-#         #     build=["missing"]
-#         # )
-        
-#         # # This executes the actual 'build()' method in the conanfile
-#         # conan_api.local.build(source_path)
-
-#         # print(f"source_path = {source_path}")
-#         # conan = ConanFile()
-#         app = ConanApp(conan_api)
-#         conanfile_path = conan_api.local.get_conanfile_path(source_path, os.getcwd(), True)
-#         conanfile_obj = app.loader.load_consumer(conanfile_path)
-#         conanfile_obj.folders.set_base_source(source_path)
-#         conanfile_obj.folders.set_base_build(os.path.join(source_path, "build"))
-#         conan_api.local.build(conanfile=conanfile_obj)
-        
-#         logger.info(f"✅ Successfully built {source_path}")
-#     except Exception as e:
-#         logger.error(f"❌ Build failed: {e}")
-
 @conan_subcommand()
 def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
     """
@@ -170,12 +87,37 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
         default=".", 
         help="Path to the recipe folder"
     )
-    
-    # Since 'args' is now a list of strings (e.g., ['.', '--release']), 
-    # unpacking it with *args works perfectly.
+
+    # For an example commands such as `conan atlas build .`
+    # *args contain the following content (['build', '.'],)
     parsed_args, conanfile_dir = subparser.parse_known_args(*args)
-    
+    # logger.info(f"BUILD_TYPE = {parsed_args.release}")
     build_type = "Release" if parsed_args.release else "Debug"
+    # 2. Handle Build Types dynamically
+    # We use a list to define allowed types. This isn't 'hardcoding' logic;
+    # it's defining the API's allowed schema.
+    BUILD_TYPES = ["Debug", "Release", "MinSizeRel", "RelWithDebInfo"]
+    
+    # We add a single argument '--type' but allow users to pass the name.
+    # Alternatively, we can create flags for each. 
+    # Here is the most flexible way:
+    subparser.add_argument(
+        "--type",
+        # aliases=["-t"],
+        choices=BUILD_TYPES,
+        default="Debug",
+        help="Specify the build type (Debug, Release, etc.)"
+    )
+    # 3. Parse the *args
+    # args[0] contains ['build', '.', '--type', 'Release']
+    parsed_args, unknown_args = subparser.parse_known_args(*args)
+
+    # 4. Retrieve the values
+    # No if/else needed! The value is pulled directly from the input.
+    test_type = parsed_args.type
+    logger.info(f"TEST BUILD_TYPE = {test_type}")
+
+
     build_path = Path(parsed_args.path).resolve()
     
     # Platform detection logic
