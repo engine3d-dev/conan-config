@@ -227,8 +227,6 @@ def atlas_create(conan_api: ConanAPI, parser, subparser, *args):
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Build failed with exit code {e.returncode}")
 
-    pass
-
 @conan_command(group="engine3d-dev")
 def atlas(conan_api, parser, *args):
     """
