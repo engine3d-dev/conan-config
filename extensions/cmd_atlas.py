@@ -127,8 +127,12 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
         profile = "mac_armv8" if "arm" in machine else "mac_x86_64"
     elif system == "linux":
         profile = "linux_x86_64"
-        confs["tools.system.package_manager:sudo"] = True
-        confs["tools.system.package_manager:mode"] = "install"
+        # confs["tools.system.package_manager:sudo"] = "True"
+        # confs["tools.system.package_manager:mode"] = "install"
+        confs.extend([
+            "-c", "tools.system.package_manager:sudo=True",
+            "-c", "tools.system.package_manager:mode=install"
+        ])
 
     # Building thje accumulative commands to the final command output to execute.
     logger.info(f"Current PATH = {conanfile_args[0]}")
