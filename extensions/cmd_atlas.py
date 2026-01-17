@@ -91,32 +91,13 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
     # For an example commands such as `conan atlas build .`
     # *args contain the following content (['build', '.'],)
     parsed_args, conanfile_dir = subparser.parse_known_args(*args)
-    # logger.info(f"BUILD_TYPE = {parsed_args.release}")
+
+    # We splice to extend the following commands to automatically directly be extended from the main commands call
+    # Meaning if we have something like: `conan atlas build . -s build_type=Debug -o enable_tests_only=True`
+    # We would parse pass `-s` and slice those following arguments directly with the commands to be executed as optional arguments specified.
+    forward_args = conanfile_dir[1:]
+    logger.info(f"UNKNOWN ARGS = {forward_args}")
     build_type = "Release" if parsed_args.release else "Debug"
-    # 2. Handle Build Types dynamically
-    # We use a list to define allowed types. This isn't 'hardcoding' logic;
-    # it's defining the API's allowed schema.
-    BUILD_TYPES = ["Debug", "Release", "MinSizeRel", "RelWithDebInfo"]
-    
-    # We add a single argument '--type' but allow users to pass the name.
-    # Alternatively, we can create flags for each. 
-    # Here is the most flexible way:
-    subparser.add_argument(
-        "--type",
-        # aliases=["-t"],
-        choices=BUILD_TYPES,
-        default="Debug",
-        help="Specify the build type (Debug, Release, etc.)"
-    )
-    # 3. Parse the *args
-    # args[0] contains ['build', '.', '--type', 'Release']
-    parsed_args, unknown_args = subparser.parse_known_args(*args)
-
-    # 4. Retrieve the values
-    # No if/else needed! The value is pulled directly from the input.
-    test_type = parsed_args.type
-    logger.info(f"TEST BUILD_TYPE = {test_type}")
-
 
     build_path = Path(parsed_args.path).resolve()
     
@@ -136,8 +117,7 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
         confs["tools.system.package_manager:sudo"] = True
         confs["tools.system.package_manager:mode"] = "install"
 
-    # Build the command
-    # logger.info(f"*args[0] = {args[0]}")
+    # Building thje accumulative commands to the final command output to execute.
     logger.info(f"Current PATH = {conanfile_dir[0]}")
     cmd = [
         "conan", "build", str(conanfile_dir[0]),
@@ -146,6 +126,7 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
         "-pr", profile
     ]
     cmd.extend(confs)
+    cmd.extend(forward_args)
 
     logger.info(f"🛠️ Building: {build_path} | Profile: {profile} | Mode: {build_type}")
 
