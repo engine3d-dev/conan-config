@@ -152,7 +152,7 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
 @conan_command(group="engine3d-dev")
 def atlas(conan_api, parser, *args):
     """
-    TheAtlasEngine development tool
+    TheAtlasEngine custom commands
     """
     parser.add_argument(
         '--verbose',
@@ -169,9 +169,9 @@ def atlas(conan_api, parser, *args):
     parser.epilog = """
     Examples:
     conan atlas setup
-    conan atlas update
+    conan atlas build <path> <arguments>
 
-    Use "conan atlas <command> --help" for more information on a specific command.
+    Use "conan atlas --help" for more information on a specific command.
     """
 
     # Parse args to get verbose flag
