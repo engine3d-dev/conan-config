@@ -125,6 +125,14 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
 
 
 @conan_subcommand()
+def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
+    """
+    Updating the Conan  profiles on the specific host platform
+    """
+    profiles_update(conan_api, parser, subparser, *args)
+
+
+@conan_subcommand()
 def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
     """
     Build the project with platform-specific defaults.
@@ -139,7 +147,7 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
 
     # For an example commands such as `conan atlas build .`
     # *args contain the following content (['build', '.'],)
-    parsed_args, conanfile_args = subparser.parse_known_args(args)
+    parsed_args, conanfile_args = subparser.parse_known_args(*args)
 
     # We splice to extend the following commands to automatically directly be extended from the main commands call
     # Meaning if we have something like: `conan atlas build . -s build_type=Debug -o enable_tests_only=True`
@@ -273,14 +281,6 @@ def atlas_create(conan_api: ConanAPI, parser, subparser, *args):
         logger.info("✅ Creating package completed successfully!")
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Creating package failed with exit code {e.returncode}")
-
-
-@conan_subcommand()
-def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
-    """
-    Updating the Conan  profiles on the specific host platform
-    """
-    profiles_update(conan_api, parser, subparser, *args)
 
 @conan_command(group="engine3d-dev")
 def atlas(conan_api, parser, *args):
