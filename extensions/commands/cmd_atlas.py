@@ -71,15 +71,18 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
 def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
     """
     Update the conan profile configuration to the latest version
+
+    Example Usage:
+    conan atlas update
     """
 
     subparser.add_argument('--tag',
-                           help='Specific release tag to install (optional)')
     args = parser.parse_args(*args)
 
     logger.info("📥 Updating conan configuration...")
 
     # Build the conan config install command
+                           help='Specific release tag to install (optional)')
     CONFIG_URL = 'https://github.com/engine3d-dev/conan-config.git'
     cmd = ['conan', 'config', 'install', CONFIG_URL]
 
@@ -94,18 +97,19 @@ def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
         logger.debug(cmd)
         result = subprocess.run(cmd, timeout=60)
         if result.returncode == 0:
-            logger.info("✅ Configuration updated successfully!")
+            logger.info("✅ Updated Conan profile configurations successfully!")
         else:
-            logger.error("❌ Failed to update configuration")
+            logger.error("❌ Failed to update Conan profiles configuration")
             return 1
     except subprocess.TimeoutExpired:
         logger.error("❌ Update timed out after 60 seconds")
         return 1
     except Exception as e:
-        logger.error(f"❌ Error during update: {e}")
+        logger.error(f"❌ Error during updating the profiles: {e}")
         return 1
 
     return 0
+
 
 @conan_subcommand()
 def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
