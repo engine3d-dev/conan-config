@@ -108,10 +108,6 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
         default_profile_path = home_path / "profiles" / "default"
         detected_profile_info = conan_api.profiles.detect()
 
-
-        # Make sure we update with profiles specific to host's platform are added
-        profiles_update(conan_api, parser, subparser, *args)
-
     except ConanException:
         logger.info("❌ Default host profile was not found! Generating one now...")
         home_path = Path(conan_api.home_folder)
@@ -121,6 +117,8 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
         logger.info("✅ Default profile generated!")
         logger.info(f"🔍 Profile Contents:\n{detected_profile_info}")
 
+    # Make sure we update with profiles specific to host's platform are added
+    profiles_update(conan_api, parser, subparser, *args)
     logger.info("✅ TheAtlasEngine development environment setup is COMPLETE! 🚀")
 
 
