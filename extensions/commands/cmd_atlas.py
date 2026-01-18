@@ -12,6 +12,56 @@ from conan.cli.command import conan_command
 
 logger = logging.getLogger(__name__)
 
+def profiles_update(conan_api: ConanAPI, parser, subparser, *args):
+    """
+    Update the conan profile configuration based on the host's current OS and Architecture
+    """
+
+    subparser.add_argument('--tag', help='Specific release tag to install (optional)')
+    args = parser.parse_args(*args)
+
+    # 1. Detect System Info
+    os_name = platform.system()       # 'Windows', 'Linux', 'Darwin' (for macOS)
+    arch_name = platform.machine()    # 'x86_64', 'AMD64', 'arm64', 'aarch64'
+
+    # Map Python's 'Darwin' to your 'mac' folder
+    os_folder = "Windows" if os_name == "Windows" else "linux" if os_name == "Linux" else "mac"
+    
+    # Map Python's architecture strings to your folder names
+    if arch_name.lower() in ["arm64", "aarch64", "armv8"]:
+        architecture_specified = "armv8"
+    elif arch_name.lower() in ['x86_64', 'amd64']:
+        architecture_specified = "x86_64"
+    else:
+        architecture_specified = "x86_64"
+
+    # Construct the Source Folder path: profiles/<arch>/<os>/
+    # Example: profiles/x86_64/windows
+    source_path = f"profiles/{architecture_specified}/{os_folder}/"
+
+    CONFIG_URL = 'https://github.com/engine3d-dev/conan-config.git'
+    cmd = [
+        'conan', 'config', 'install',
+        '-sf', source_path,
+        '-tf', 'profiles',
+        CONFIG_URL
+    ]
+
+    try:
+        logger.debug(f"Executing: {cmd}")
+        result = subprocess.run(cmd, timeout=60)
+        
+        if result.returncode == 0:
+            logger.info(f"✅ Profiles for {os_folder}/{architecture_specified} updated successfully!")
+        else:
+            logger.error("❌ Failed to update configuration")
+            return 1
+    except Exception as e:
+        logger.error(f"❌ Error during update: {e}")
+        return 1
+
+    return 0
+
 @conan_subcommand()
 def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
     """
@@ -49,13 +99,19 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
     
     logger.info(f"✅ Conan Remotes have been added successfully")
 
-    # Ensuring the conan host profiles are setup
+    # Ensuring to setup the conan host profiles
     try:
+        # Ensuring the default conan profile is already setup
         conan_api.profiles.get_default_host()
         logger.info("✅ System currently already have a default host profile, proceeding!")
         home_path = Path(conan_api.home_folder)
         default_profile_path = home_path / "profiles" / "default"
         detected_profile_info = conan_api.profiles.detect()
+
+
+        # Make sure we update with profiles specific to host's platform are added
+        profiles_update(conan_api, parser, subparser, *args)
+
     except ConanException:
         logger.info("❌ Default host profile was not found! Generating one now...")
         home_path = Path(conan_api.home_folder)
@@ -66,65 +122,6 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
         logger.info(f"🔍 Profile Contents:\n{detected_profile_info}")
 
     logger.info("✅ TheAtlasEngine development environment setup is COMPLETE! 🚀")
-
-@conan_subcommand()
-def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
-    """
-    Update the conan profile configuration based on current OS and Architecture
-    """
-
-    subparser.add_argument('--tag', help='Specific release tag to install (optional)')
-    args = parser.parse_args(*args)
-
-    # 1. Detect System Info
-    os_name = platform.system()       # 'Windows', 'Linux', 'Darwin' (for macOS)
-    arch_name = platform.machine()    # 'x86_64', 'AMD64', 'arm64', 'aarch64'
-
-    # 2. Map OS and Arch to your specific repo folders
-    # Map Python's 'Darwin' to your 'mac' folder
-    os_folder = "Windows" if os_name == "Windows" else "linux" if os_name == "Linux" else "mac"
-    
-    # Map Python's architecture strings to your folder names
-    if arch_name.lower() in ["arm64", "aarch64", "armv8"]:
-        arch_folder = "armv8"
-    else:
-        arch_folder = "x86_64"
-
-    # Construct the Source Folder path: profiles/<arch>/<os>/
-    source_path = f"profiles/{arch_folder}/{os_folder}/"
-    
-    logger.info(f"🖥️  Detected System: {os_name} ({arch_name})")
-    logger.info(f"📂 Mapping to source folder: {source_path}")
-
-    # 3. Build the Command
-    CONFIG_URL = 'https://github.com/engine3d-dev/conan-config.git'
-    cmd = [
-        'conan', 'config', 'install',
-        '-sf', source_path,
-        '-tf', 'profiles',
-        CONFIG_URL
-    ]
-
-    if args.tag:
-        cmd.extend(['--args', f'branch={args.tag}'])
-        logger.info(f"📥 Installing tag '{args.tag}' from {CONFIG_URL}")
-    else:
-        logger.info(f"📥 Installing latest from {CONFIG_URL}")
-
-    try:
-        logger.debug(f"Executing: {' '.join(cmd)}")
-        result = subprocess.run(cmd, timeout=60)
-        
-        if result.returncode == 0:
-            logger.info(f"✅ Profiles for {os_folder}/{arch_folder} updated successfully!")
-        else:
-            logger.error("❌ Failed to update configuration")
-            return 1
-    except Exception as e:
-        logger.error(f"❌ Error during update: {e}")
-        return 1
-
-    return 0
 
 
 @conan_subcommand()
@@ -142,7 +139,7 @@ def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
 
     # For an example commands such as `conan atlas build .`
     # *args contain the following content (['build', '.'],)
-    parsed_args, conanfile_args = subparser.parse_known_args(*args)
+    parsed_args, conanfile_args = subparser.parse_known_args(args)
 
     # We splice to extend the following commands to automatically directly be extended from the main commands call
     # Meaning if we have something like: `conan atlas build . -s build_type=Debug -o enable_tests_only=True`
@@ -276,6 +273,14 @@ def atlas_create(conan_api: ConanAPI, parser, subparser, *args):
         logger.info("✅ Creating package completed successfully!")
     except subprocess.CalledProcessError as e:
         logger.error(f"❌ Creating package failed with exit code {e.returncode}")
+
+
+@conan_subcommand()
+def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
+    """
+    Updating the Conan  profiles on the specific host platform
+    """
+    profiles_update(conan_api, parser, subparser, *args)
 
 @conan_command(group="engine3d-dev")
 def atlas(conan_api, parser, *args):
