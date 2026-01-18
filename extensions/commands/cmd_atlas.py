@@ -70,45 +70,62 @@ def atlas_setup(conan_api: ConanAPI, parser, subparser, *args):
 @conan_subcommand()
 def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
     """
-    Update the conan profile configuration to the latest version
-
-    Example Usage:
-    conan atlas update
+    Update the conan profile configuration based on current OS and Architecture
     """
 
-    subparser.add_argument('--tag',
-                           help='Specific release tag to install (optional)')
+    subparser.add_argument('--tag', help='Specific release tag to install (optional)')
     args = parser.parse_args(*args)
 
-    logger.info("📥 Updating conan configuration...")
+    # 1. Detect System Info
+    os_name = platform.system()       # 'Windows', 'Linux', 'Darwin' (for macOS)
+    arch_name = platform.machine()    # 'x86_64', 'AMD64', 'arm64', 'aarch64'
 
-    # Build the conan config install command
+    # 2. Map OS and Arch to your specific repo folders
+    # Map Python's 'Darwin' to your 'mac' folder
+    os_folder = "Windows" if os_name == "Windows" else "linux" if os_name == "Linux" else "mac"
+    
+    # Map Python's architecture strings to your folder names
+    if arch_name.lower() in ["arm64", "aarch64", "armv8"]:
+        arch_folder = "armv8"
+    else:
+        arch_folder = "x86_64"
+
+    # Construct the Source Folder path: profiles/<arch>/<os>/
+    source_path = f"profiles/{arch_folder}/{os_folder}/"
+    
+    logger.info(f"🖥️  Detected System: {os_name} ({arch_name})")
+    logger.info(f"📂 Mapping to source folder: {source_path}")
+
+    # 3. Build the Command
     CONFIG_URL = 'https://github.com/engine3d-dev/conan-config.git'
-    cmd = ['conan', 'config', 'install', CONFIG_URL]
+    cmd = [
+        'conan', 'config', 'install',
+        '-sf', source_path,
+        '-tf', 'profiles',
+        CONFIG_URL
+    ]
 
-    # Add tag argument if specified
     if args.tag:
         cmd.extend(['--args', f'branch={args.tag}'])
-        logger.info(f"Installing from: {CONFIG_URL} (tag: {args.tag})")
+        logger.info(f"📥 Installing tag '{args.tag}' from {CONFIG_URL}")
     else:
-        logger.info(f"Installing from: {CONFIG_URL} (latest)")
+        logger.info(f"📥 Installing latest from {CONFIG_URL}")
+
     try:
-        # Run the command
-        logger.debug(cmd)
+        logger.debug(f"Executing: {' '.join(cmd)}")
         result = subprocess.run(cmd, timeout=60)
+        
         if result.returncode == 0:
-            logger.info("✅ Updated Conan profile configurations successfully!")
+            logger.info(f"✅ Profiles for {os_folder}/{arch_folder} updated successfully!")
         else:
-            logger.error("❌ Failed to update Conan profiles configuration")
+            logger.error("❌ Failed to update configuration")
             return 1
-    except subprocess.TimeoutExpired:
-        logger.error("❌ Update timed out after 60 seconds")
-        return 1
     except Exception as e:
-        logger.error(f"❌ Error during updating the profiles: {e}")
+        logger.error(f"❌ Error during update: {e}")
         return 1
 
     return 0
+
 
 @conan_subcommand()
 def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
