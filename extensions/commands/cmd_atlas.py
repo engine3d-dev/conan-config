@@ -77,12 +77,12 @@ def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
     """
 
     subparser.add_argument('--tag',
+                           help='Specific release tag to install (optional)')
     args = parser.parse_args(*args)
 
     logger.info("📥 Updating conan configuration...")
 
     # Build the conan config install command
-                           help='Specific release tag to install (optional)')
     CONFIG_URL = 'https://github.com/engine3d-dev/conan-config.git'
     cmd = ['conan', 'config', 'install', CONFIG_URL]
 
@@ -109,7 +109,6 @@ def atlas_update(conan_api: ConanAPI, parser, subparser, *args):
         return 1
 
     return 0
-
 
 @conan_subcommand()
 def atlas_build(conan_api: ConanAPI, parser, subparser, *args):
